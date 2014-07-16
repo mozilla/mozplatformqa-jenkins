@@ -1,0 +1,6 @@
+[submodule "simplesignalling"]
+	path = simplesignalling
+	url = https://github.com/luser/simplesignalling.git
+[submodule "steeplechase"]
+	path = steeplechase
+	url = https://github.com/mozilla/steeplechase
