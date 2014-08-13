@@ -4,10 +4,11 @@ platform=$1
 
 function repackage_mac_dmg {
     if [ $platform = 'mac' ]; then
-        if [ firefox-latest-nightly.en-US.mac.dmg -nt firefox-latest-nightly.en-US.mac.tar.bz2 ]; then
+        if [ ! -e firefox-latest-nightly.en-US.mac.tar.bz2 ] || [ firefox-latest-nightly.en-US.mac.dmg -nt firefox-latest-nightly.en-US.mac.tar.bz2 ]; then
             hdiutil attach firefox-latest-nightly.en-US.mac.dmg
             mkdir -p /tmp/releases/mac
             rsync -avz --extended-attributes /Volumes/Nightly/FirefoxNightly.app /tmp/releases/mac/
+            rm -f firefox-latest-nightly.en-US.mac.tar.bz2
             cd /tmp/releases/mac
             tar cvfj $wd/releases/firefox-latest-nightly.en-US.mac.tar.bz2 ./FirefoxNightly.app
             cd $wd/releases
@@ -45,12 +46,11 @@ if [ -e $target ]; then
    if [ `find . -type f -name \*.$web_platform.$archive_ext -newer $target` ]; then
 	find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
 	find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ./mk_link.sh $target '{}' \;
-        repackage_mac_dmg
    fi
 else
-    repackage_mac_dmg
     ln -s *mozilla*central*$web_platform.$archive_ext $target
 fi
+repackage_mac_dmg
 
 cd $wd
 
