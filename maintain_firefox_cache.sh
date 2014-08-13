@@ -3,17 +3,17 @@
 platform=$1
 
 function repackage_mac_dmg {
-    if [ $platform = 'mac' ]; then
-        if [ ! -e firefox-latest-nightly.en-US.mac.tar.bz2 ] || [ firefox-latest-nightly.en-US.mac.dmg -nt firefox-latest-nightly.en-US.mac.tar.bz2 ]; then
-            hdiutil attach firefox-latest-nightly.en-US.mac.dmg
-            mkdir -p /tmp/releases/mac
-            rsync -avz --extended-attributes /Volumes/Nightly/FirefoxNightly.app /tmp/releases/mac/
-            rm -f firefox-latest-nightly.en-US.mac.tar.bz2
-            cd /tmp/releases/mac
-            tar cvfj $wd/releases/firefox-latest-nightly.en-US.mac.tar.bz2 ./FirefoxNightly.app
-            cd $wd/releases
+    if [ $platform = 'mac' ] || [ $platform = 'mac64' ]; then
+        if [ ! -e firefox-latest-nightly.en-US.$platform.tar.bz2 ] || [ firefox-latest-nightly.en-US.$platform.dmg -nt firefox-latest-nightly.en-US.$platform.tar.bz2 ]; then
+            hdiutil attach firefox-latest-nightly.en-US.$platform.dmg
+            mkdir -p /tmp/releases/$platform
+            rsync -avz --extended-attributes /Volumes/Nightly/FirefoxNightly.app /tmp/releases/$platform/
+            rm -f firefox-latest-nightly.en-US.$platform.tar.bz2
+            pushd /tmp/releases/$platform
+            tar cvfj $wd/releases/firefox-latest-nightly.en-US.$platform.tar.bz2 ./FirefoxNightly.app
+            popd
             umount /Volumes/Nightly
-            rm -rf /tmp/releases/mac/FirefoxNightly.app
+            rm -rf /tmp/releases/$platform/FirefoxNightly.app
         fi
    fi
 }
@@ -29,8 +29,14 @@ elif [ $platform = 'linux' ]; then
 elif [ $platform = 'mac' ]; then
     web_platform='mac'
     archive_ext='dmg'
-elif [ $platform = 'win' ]; then
-    web_platform='win'
+elif [ $platform = 'mac64' ]; then
+    web_platform='mac64'
+    archive_ext='dmg'
+elif [ $platform = 'win32' ]; then
+    web_platform='win32'
+    archive_ext='zip'
+elif [ $platform = 'win64' ]; then
+    web_platform='win64-x86_64'
     archive_ext='zip'
 fi
 
@@ -40,15 +46,15 @@ wd=`pwd`
 mkdir -p releases
 cd releases
 
-mozdownload --type=daily --platform=$platform
+mozdownload --type=daily --platform="$platform" --extension="$archive_ext"
 
 if [ -e $target ]; then
-   if [ `find . -type f -name \*.$web_platform.$archive_ext -newer $target` ]; then
+    if [ `find . -type f -name \*.$web_platform.$archive_ext -newer $target` ]; then
 	find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
-	find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ./mk_link.sh $target '{}' \;
-   fi
+	find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
+    fi
 else
-    ln -s *mozilla*central*$web_platform.$archive_ext $target
+    ../copy_latest.sh *mozilla*central*$web_platform.$archive_ext $target
 fi
 repackage_mac_dmg
 
