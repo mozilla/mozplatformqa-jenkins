@@ -18,7 +18,7 @@ function repackage_mac_dmg {
    fi
 }
 
-if [ $platform = "" ]; then
+if [ "$platform" = "" ]; then
     exit
 elif [ $platform = 'linux64' ]; then
     web_platform='linux-x86_64'
