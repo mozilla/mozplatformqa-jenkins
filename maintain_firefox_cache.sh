@@ -89,7 +89,7 @@ if [ "$release" = "nightly" ] || [ "$release" = "aurora" ] ; then
 
     if [ -e $target ]; then
         results=`find . -type f -name \*.$web_platform.$archive_ext -newer $target`
-        if [ $results != '' ]; then
+        if [ "x$results" != 'x' ]; then
             find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
             find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
         fi
