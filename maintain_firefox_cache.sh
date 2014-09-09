@@ -1,5 +1,11 @@
 #!/bin/bash
 
+tests='no'
+if [ $1 = '--tests' ]; then
+    tests='yes'
+    shift
+fi
+
 platform=$1
 if [ "$2" = "" ]; then
     release="nightly"
@@ -8,34 +14,36 @@ else
 fi
 
 function usage {
-    "Usage: maintain_firefox_cache.sh <platform> |<release>|"
+    "Usage: maintain_firefox_cache.sh |--tests| <platform> |<release>|"
     "<release> can be one of nightly, aurora, beta, release and esr."
     exit 1
 }
 
 function repackage_mac_dmg {
-    if [ $platform = 'mac' ] || [ $platform = 'mac64' ]; then
-        if [ ! -e firefox-latest-$release.en-US.$platform.tar.bz2 ] || [ firefox-latest-$release.en-US.$platform.dmg -nt firefox-latest-$release.en-US.$platform.tar.bz2 ]; then
-            hdiutil attach firefox-latest-$release.en-US.$platform.dmg
-            mkdir -p /tmp/releases/$platform
-            if [ "$release" = "nightly" ]; then
-                volname="Nightly"
-                appname="FirefoxNightly"
-            elif [ "$release" = "aurora" ]; then
-                volname="Aurora"
-                appname="FirefoxAurora"
-            else
-                volname="Firefox"
-                appname="Firefox"
-            fi
+    if [ $tests = 'no' ]; then
+        if [ $platform = 'mac' ] || [ $platform = 'mac64' ]; then
+            if [ ! -e firefox-latest-$release.en-US.$platform.tar.bz2 ] || [ firefox-latest-$release.en-US.$platform.dmg -nt firefox-latest-$release.en-US.$platform.tar.bz2 ]; then
+                hdiutil attach firefox-latest-$release.en-US.$platform.dmg
+                mkdir -p /tmp/releases/$platform
+                if [ "$release" = "nightly" ]; then
+                    volname="Nightly"
+                    appname="FirefoxNightly"
+                elif [ "$release" = "aurora" ]; then
+                    volname="Aurora"
+                    appname="FirefoxAurora"
+                else
+                    volname="Firefox"
+                    appname="Firefox"
+                fi
 
-            rsync -avz --extended-attributes /Volumes/$volname/$appname.app /tmp/releases/$platform/
-            rm -f firefox-latest-$release.en-US.$platform.tar.bz2
-            pushd /tmp/releases/$platform
-            tar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
-            popd
-            umount /Volumes/$volname
-            rm -rf /tmp/releases/$platform/$appname.app
+                rsync -avz --extended-attributes /Volumes/$volname/$appname.app /tmp/releases/$platform/
+                rm -f firefox-latest-$release.en-US.$platform.tar.bz2
+                pushd /tmp/releases/$platform
+                tar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
+                popd
+                umount /Volumes/$volname
+                rm -rf /tmp/releases/$platform/$appname.app
+            fi
         fi
    fi
 }
@@ -62,6 +70,10 @@ elif [ $platform = 'win64' ]; then
     archive_ext='zip'
 fi
 
+if [ "$tests" = 'yes' ]; then
+    archive_ext='tests.zip'
+fi
+
 wd=`pwd`
 mkdir -p releases
 cd releases
@@ -76,9 +88,10 @@ if [ "$release" = "nightly" ] || [ "$release" = "aurora" ] ; then
     fi
 
     if [ -e $target ]; then
-        if [ `find . -type f -name \*.$web_platform.$archive_ext -newer $target` ]; then
-	    find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
-	    find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
+        results=`find . -type f -name \*.$web_platform.$archive_ext -newer $target`
+        if [ $results != '' ]; then
+            find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
+            find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
         fi
     else
         if [ "$release" = "nightly" ]; then
