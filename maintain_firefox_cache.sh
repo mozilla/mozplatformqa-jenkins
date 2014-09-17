@@ -23,8 +23,6 @@ function repackage_mac_dmg {
     if [ $tests = 'no' ]; then
         if [ $platform = 'mac' ] || [ $platform = 'mac64' ]; then
             if [ ! -e firefox-latest-$release.en-US.$platform.tar.bz2 ] || [ firefox-latest-$release.en-US.$platform.dmg -nt firefox-latest-$release.en-US.$platform.tar.bz2 ]; then
-                hdiutil attach firefox-latest-$release.en-US.$platform.dmg
-                mkdir -p /tmp/releases/$platform
                 if [ "$release" = "nightly" ]; then
                     volname="Nightly"
                     appname="FirefoxNightly"
@@ -36,9 +34,12 @@ function repackage_mac_dmg {
                     appname="Firefox"
                 fi
 
-                rsync -avz --extended-attributes /Volumes/$volname/$appname.app /tmp/releases/$platform/
+                umount /Volumes/$volname
+                hdiutil attach firefox-latest-$release.en-US.$platform.dmg
+                mkdir -p /tmp/releases/$platform
+
                 rm -f firefox-latest-$release.en-US.$platform.tar.bz2
-                pushd /tmp/releases/$platform
+                pushd /Volumes/$volname
                 tar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
                 popd
                 umount /Volumes/$volname
