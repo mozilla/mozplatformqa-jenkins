@@ -5,7 +5,7 @@
     <dict>
         <key>Label</key>
         <string>org.mozilla.Negatus</string>
-        <key>Negatus</key>
+	<key>Program</key>
         <string>/Users/mozilla/src/Negatus/agent</string>
         <key>RunAtLoad</key>
         <true/>
