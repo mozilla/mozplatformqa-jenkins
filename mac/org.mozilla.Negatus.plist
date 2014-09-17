@@ -12,8 +12,8 @@
         <key>WorkingDirectory</key>
         <string>/Users/mozilla/src/Negatus</string>
         <key>StandardOutPath</key>
-        <string>/var/log/Negatus.stdout</string>
+        <string>/tmp/Negatus.stdout</string>
         <key>StandardErrorPath</key>
-        <string>/var/log/Negatus.stderr</string>
+        <string>/tmp/Negatus.stderr</string>
     </dict>
 </plist>
