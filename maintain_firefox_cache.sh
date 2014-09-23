@@ -40,7 +40,7 @@ function repackage_mac_dmg {
 
                 rm -f firefox-latest-$release.en-US.$platform.tar.bz2
                 pushd /Volumes/$volname
-                tar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
+                gtar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
                 popd
                 umount /Volumes/$volname
                 rm -rf /tmp/releases/$platform/$appname.app
