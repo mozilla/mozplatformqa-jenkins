@@ -11,6 +11,12 @@ if [ "$2" = "" ]; then
     release="nightly"
 else
     release="$2"
+    shift
+fi
+
+repackage=0
+if [ "$2" = "repackage" ]; then
+    repackage=1
 fi
 
 function usage {
@@ -22,28 +28,32 @@ function usage {
 function repackage_mac_dmg {
     if [ $tests = 'no' ]; then
         if [ $platform = 'mac' ] || [ $platform = 'mac64' ]; then
-            if [ ! -e firefox-latest-$release.en-US.$platform.tar.bz2 ] || [ firefox-latest-$release.en-US.$platform.dmg -nt firefox-latest-$release.en-US.$platform.tar.bz2 ]; then
-                if [ "$release" = "nightly" ]; then
-                    volname="Nightly"
-                    appname="FirefoxNightly"
-                elif [ "$release" = "aurora" ]; then
-                    volname="Aurora"
-                    appname="FirefoxAurora"
-                else
-                    volname="Firefox"
-                    appname="Firefox"
+            if [ "$repackage" = "1" ] ; then
+                if [ ! -e firefox-latest-$release.en-US.$platform.tar.bz2 ] || [ firefox-latest-$release.en-US.$platform.dmg -nt firefox-latest-$release.en-US.$platform.tar.bz2 ]; then
+                    if [ "$release" = "nightly" ]; then
+                        volname="Nightly"
+                        appname="FirefoxNightly"
+                    elif [ "$release" = "aurora" ]; then
+                        volname="Aurora"
+                        appname="FirefoxAurora"
+                    else
+                        volname="Firefox"
+                        appname="Firefox"
+                    fi
+
+                    umount /Volumes/FF
+                    hdiutil attach -quiet -mountpoint /Volumes/FF firefox-latest-$release.en-US.$platform.dmg
+                    mkdir -p /tmp/releases/$platform
+
+                    rm -f firefox-latest-$release.en-US.$platform.tar.bz2
+                    pushd /Volumes/FF
+                    gtar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
+                    popd
+                    umount /Volumes/FF
+                    rm -rf /tmp/releases/$platform/$appname.app
                 fi
-
-                umount /Volumes/$volname
-                hdiutil attach firefox-latest-$release.en-US.$platform.dmg
-                mkdir -p /tmp/releases/$platform
-
+            else
                 rm -f firefox-latest-$release.en-US.$platform.tar.bz2
-                pushd /Volumes/$volname
-                gtar cvfj $wd/releases/firefox-latest-$release.en-US.$platform.tar.bz2 ./$appname.app
-                popd
-                umount /Volumes/$volname
-                rm -rf /tmp/releases/$platform/$appname.app
             fi
         fi
    fi
