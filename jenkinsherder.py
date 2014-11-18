@@ -39,14 +39,19 @@ def get_config():
     parser.add_argument('--start-time', required=True, type=int, dest='start_time')
     parser.add_argument('--end-time', required=True, type=int, dest='end_time')
     parser.add_argument('--steeplechase-log', required=True, dest='steeplechase_log')
+    parser.add_argument('--machine1', required=True, dest='machine1')
+    parser.add_argument('--machine2', required=True, dest='machine2')
+    parser.add_argument('--arch1', required=True, dest='arch1')
+    parser.add_argument('--arch2', required=True, dest='arch2')
     args = parser.parse_args()
 
-    pfi = platform_info(args.package)
-    pfi['package'] = args.package
+    pfi = platform_info(args.package, args.arch1, args.machine1)
     if args.package2:
-        pfi['package2'] = args.package2
+        package2 = args.package2
     else:
-        pfi['package2'] = args.package
+        package2 = args.package
+
+    pfi2 = platform_info(package2, args.arch2, args.machine2)
 
     my_dir = os.path.dirname(os.path.realpath(argv[0]))
     my_ini = os.path.join(my_dir, 'jenkinsherder.ini')
@@ -64,12 +69,13 @@ def get_config():
     config['times']['start_time'] = args.start_time
     config['times']['end_time'] = args.end_time
     config['platform_info'] = pfi
+    config['platform_info2'] = pfi2
     config['files'] = {}
     config['files']['steeplechase_log'] = args.steeplechase_log
 
     return config
 
-def platform_info(package):
+def platform_info(package, arch, machine):
     base_name, file = os.path.split(package)
     exp = re.compile(r"^firefox-latest-([^\.]+)\.en-US\.([^\.]+)\.(.*)$")
     match = exp.match(file)
@@ -81,10 +87,8 @@ def platform_info(package):
     arch_match = exp.match(whole_platform)
     if arch_match:
         platform = arch_match.group(1)
-        architecture = arch_match.group(2)
     else:
         platform = whole_platform
-        architecture = ''
 
     if platform == 'linux':
         os_name = 'linux'
@@ -105,7 +109,7 @@ def platform_info(package):
     rev = repo_match.group(2)
     build_file.close()
 
-    return { 'platform': platform, 'os_name': os_name, 'architecture': architecture, 'release': release, 'buildid': buildid, 'repo': repo, 'rev': rev }
+    return { 'package': package, 'platform': platform, 'os_name': os_name, 'architecture': arch, 'release': release, 'buildid': buildid, 'repo': repo, 'rev': rev, 'machine': machine }
 
 
 def get_app_information(config):
@@ -114,7 +118,7 @@ def get_app_information(config):
     return rev, repo
 
 def get_files(config):
-    return config['platform_info']['package'], config['platform_info']['package2']
+    return config['platform_info']['package'], config['platform_info2']['package']
 
 
 def get_buildid(config):
@@ -214,7 +218,7 @@ def main():
     tj.add_end_timestamp(config['times']['end_time'])
 
     tj.add_state('completed')
-    tj.add_machine(socket.gethostname())
+    tj.add_machine(config['platform_info']['machine'])
 
     result_string = get_result_string(results)
     tj.add_result(result_string)
