@@ -83,8 +83,8 @@ def platform_info(package, arch, machine):
     whole_platform = match.group(2)
     extension = match.group(3)
 
-    arch_exp = re.compile(r"^([^\.]+)-(.*)$")
-    arch_match = exp.match(whole_platform)
+    arch_exp = re.compile(r"^(.*)-(.*)$")
+    arch_match = arch_exp.match(whole_platform)
     if arch_match:
         platform = arch_match.group(1)
     else:
