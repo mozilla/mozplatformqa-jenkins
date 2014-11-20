@@ -16,13 +16,16 @@ import socket
 import uuid
 import argparse
 import re
+import sys
+import subprocess
 
 from thclient import TreeherderJobCollection
 from thclient import TreeherderRequest
 from thclient import TreeherderResultSetCollection
+import mozlog
 
 import sclogparse
-
+import runsteeplechase
 
 def create_revision_hash():
     sha = hashlib.sha1()
@@ -31,27 +34,28 @@ def create_revision_hash():
     return sha.hexdigest()
 
 
-def get_config():
+def get_config(argv):
     parser = argparse.ArgumentParser(description='Jenkins Steeplechase Treeherder Results Parser')
     parser.add_argument('--package', required=True)
     parser.add_argument('--package2', default=None)
-    parser.add_argument('--submit-time', required=True, type=int, dest='submit_time')
-    parser.add_argument('--start-time', required=True, type=int, dest='start_time')
-    parser.add_argument('--end-time', required=True, type=int, dest='end_time')
-    parser.add_argument('--steeplechase-log', required=True, dest='steeplechase_log')
-    parser.add_argument('--machine1', required=True, dest='machine1')
-    parser.add_argument('--machine2', required=True, dest='machine2')
+    parser.add_argument('--host1', required=True)
+    parser.add_argument('--host2', required=True)
     parser.add_argument('--arch1', required=True, dest='arch1')
     parser.add_argument('--arch2', required=True, dest='arch2')
-    args = parser.parse_args()
+    parser.add_argument('--html-manifest', required=True, dest='html_manifest')
+    parser.add_argument('--specialpowers-path', required=True, dest='specialpowers_path')
+    parser.add_argument('--prefs-file', required=True, dest='prefs_file')
+    parser.add_argument('--signalling-server', required=True, dest='signalling_server')
+    parser.add_argument('--save-logs-to', required=True, dest='log_dest')
+    args = parser.parse_args(argv)
 
-    pfi = platform_info(args.package, args.arch1, args.machine1)
+    pfi = platform_info(args.package, args.arch1, args.host1)
     if args.package2:
         package2 = args.package2
     else:
         package2 = args.package
 
-    pfi2 = platform_info(package2, args.arch2, args.machine2)
+    pfi2 = platform_info(package2, args.arch2, args.host2)
 
     my_dir = os.path.dirname(os.path.realpath(argv[0]))
     my_ini = os.path.join(my_dir, 'jenkinsherder.ini')
@@ -65,17 +69,18 @@ def get_config():
     config['treeherder']['repo'] = dict(cp.items('Repo'))
     config['system'] = dict(cp.items('System'))
     config['times'] = {}
-    config['times']['submit_time'] = args.submit_time
-    config['times']['start_time'] = args.start_time
-    config['times']['end_time'] = args.end_time
     config['platform_info'] = pfi
     config['platform_info2'] = pfi2
     config['files'] = {}
-    config['files']['steeplechase_log'] = args.steeplechase_log
+    config['log_dest'] = args.log_dest
+    config['signalling_server'] = args.signalling_server
+    config['prefs_file'] = args.prefs_file
+    config['specialpowers_path'] = args.specialpowers_path
+    config['html_manifest'] = args.html_manifest
 
     return config
 
-def platform_info(package, arch, machine):
+def platform_info(package, arch, host):
     base_name, file = os.path.split(package)
     exp = re.compile(r"^firefox-latest-([^\.]+)\.en-US\.([^\.]+)\.(.*)$")
     match = exp.match(file)
@@ -109,7 +114,7 @@ def platform_info(package, arch, machine):
     rev = repo_match.group(2)
     build_file.close()
 
-    return { 'package': package, 'platform': platform, 'os_name': os_name, 'architecture': arch, 'release': release, 'buildid': buildid, 'repo': repo, 'rev': rev, 'machine': machine }
+    return { 'package': package, 'platform': platform, 'os_name': os_name, 'architecture': arch, 'release': release, 'buildid': buildid, 'repo': repo, 'rev': rev, 'host': host }
 
 
 def get_app_information(config):
@@ -166,13 +171,66 @@ def get_result_string(results):
         return 'testfailed'
 
 
-def main():
-    config = get_config()
+def run_steeplechase(config, log):
+    scargs = []
+
+    scargs.append('--package')
+    scargs.append(config['platform_info']['package'])
+
+    if config['platform_info']['package'] != config['platform_info2']['package']:
+        scargs.append('--package2')
+        scargs.append(config['platform_info2']['package'])
+
+    scargs.append('--save-logs-to')
+    scargs.append(config['log_dest'])
+
+    scargs.append('--prefs-file')
+    scargs.append(config['prefs_file'])
+
+    scargs.append('--specialpowers-path')
+    scargs.append(config['specialpowers_path'])
+
+    scargs.append('--signalling-server')
+    scargs.append(config['signalling_server'])
+
+    scargs.append('--html-manifest')
+    scargs.append(config['html_manifest'])
+
+    scargs.append('--host1')
+    scargs.append(config['platform_info']['host'])
+
+    scargs.append('--host2')
+    scargs.append(config['platform_info2']['host'])
+
+    # We can't just run steeplechase directly, because it dumps its data to stdout/stderr instead of returning it.
+    # I suppose I could redefine stdout and stderr... Nope. Not doing that.
+
+    #passed = runsteeplechase.main(scargs)
+
+    
+
+    return result_log, 0
+
+
+def main(argv):
+    config = get_config(argv)
+
+    log = mozlog.getLogger('steeplechase')
+    log.setLevel(mozlog.DEBUG)
+
+    # First, run steeplechase.
+    try:
+        sclog, status = run_steeplechase(config, log)
+    except Exception as e:
+        log.info("run_steeplechase threw %s" % e)
+        raise
+
+    # Second, process the output.
 
     app_revision, app_repository = get_app_information(config)
     files = get_files(config)
     push_time = int(os.stat(files[0]).st_ctime)
-    results = sclogparse.parse(config['files']['steeplechase_log'])
+    results = sclogparse.parse(log)
     result_set_hash = create_revision_hash()
 
     trsc = TreeherderResultSetCollection()
@@ -218,7 +276,7 @@ def main():
     tj.add_end_timestamp(config['times']['end_time'])
 
     tj.add_state('completed')
-    tj.add_machine(config['platform_info']['machine'])
+    tj.add_machine(config['platform_info']['host'])
 
     result_string = get_result_string(results)
     tj.add_result(result_string)
@@ -249,4 +307,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(0 if main(sys.argv[1:]) else 1)
+
