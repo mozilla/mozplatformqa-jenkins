@@ -47,6 +47,7 @@ def get_config(argv):
     parser.add_argument('--prefs-file', required=True, dest='prefs_file')
     parser.add_argument('--signalling-server', required=True, dest='signalling_server')
     parser.add_argument('--save-logs-to', required=True, dest='log_dest')
+    parser.add_argument('--steeplechase', required=True)
     args = parser.parse_args(argv)
 
     pfi = platform_info(args.package, args.arch1, args.host1)
@@ -77,6 +78,7 @@ def get_config(argv):
     config['prefs_file'] = args.prefs_file
     config['specialpowers_path'] = args.specialpowers_path
     config['html_manifest'] = args.html_manifest
+    config['steeplechase'] = args.steeplechase
 
     return config
 
@@ -172,44 +174,28 @@ def get_result_string(results):
 
 
 def run_steeplechase(config, log):
-    scargs = []
-
-    scargs.append('--package')
-    scargs.append(config['platform_info']['package'])
+    cmd = sys.executable
+    cmd += ' %s' % config['steeplechase']
+    cmd += ' --package %s' % config['platform_info']['package']
 
     if config['platform_info']['package'] != config['platform_info2']['package']:
-        scargs.append('--package2')
-        scargs.append(config['platform_info2']['package'])
+        cmd += ' --package2 %s' % config['platform_info2']['package']
 
-    scargs.append('--save-logs-to')
-    scargs.append(config['log_dest'])
+    cmd += ' --save-logs-to %s' % config['log_dest']
+    cmd += ' --prefs-file %s' % config['prefs_file']
+    cmd += ' --specialpowers-path %s' % config['specialpowers_path']
+    cmd += ' --signalling-server %s' % config['signalling_server']
+    cmd += ' --html-manifest %s' % config['html_manifest']
+    cmd += ' --host1 %s' % config['platform_info']['host']
+    cmd += ' --host2 %s' % config['platform_info2']['host']
+    cmd += ' 1>&2'
 
-    scargs.append('--prefs-file')
-    scargs.append(config['prefs_file'])
+    p = subprocess.Popen(cmd, bufsize=1, stderr=subprocess.PIPE, shell=True)
+    out, err = p.communicate()
+    log.info(err)
+    status = p.returncode
 
-    scargs.append('--specialpowers-path')
-    scargs.append(config['specialpowers_path'])
-
-    scargs.append('--signalling-server')
-    scargs.append(config['signalling_server'])
-
-    scargs.append('--html-manifest')
-    scargs.append(config['html_manifest'])
-
-    scargs.append('--host1')
-    scargs.append(config['platform_info']['host'])
-
-    scargs.append('--host2')
-    scargs.append(config['platform_info2']['host'])
-
-    # We can't just run steeplechase directly, because it dumps its data to stdout/stderr instead of returning it.
-    # I suppose I could redefine stdout and stderr... Nope. Not doing that.
-
-    #passed = runsteeplechase.main(scargs)
-
-    
-
-    return result_log, 0
+    return err, status
 
 
 def main(argv):
