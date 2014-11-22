@@ -18,6 +18,7 @@ import argparse
 import re
 import sys
 import subprocess
+import datetime
 
 from thclient import TreeherderJobCollection
 from thclient import TreeherderRequest
@@ -25,7 +26,6 @@ from thclient import TreeherderResultSetCollection
 import mozlog
 
 import sclogparse
-import runsteeplechase
 
 def create_revision_hash():
     sha = hashlib.sha1()
@@ -79,6 +79,8 @@ def get_config(argv):
     config['specialpowers_path'] = args.specialpowers_path
     config['html_manifest'] = args.html_manifest
     config['steeplechase'] = args.steeplechase
+    config['times']['submit_time'] = datetime.datetime.now().strftime("%s")
+
 
     return config
 
@@ -190,10 +192,12 @@ def run_steeplechase(config, log):
     cmd += ' --host2 %s' % config['platform_info2']['host']
     cmd += ' 1>&2'
 
+    config['times']['start_time'] = datetime.datetime.now().strftime("%s")
     p = subprocess.Popen(cmd, bufsize=1, stderr=subprocess.PIPE, shell=True)
     out, err = p.communicate()
     log.info(err)
     status = p.returncode
+    config['times']['end_time'] = datetime.datetime.now().strftime("%s")
 
     return err, status
 
@@ -213,10 +217,12 @@ def main(argv):
 
     # Second, process the output.
 
+
     app_revision, app_repository = get_app_information(config)
     files = get_files(config)
     push_time = int(os.stat(files[0]).st_ctime)
-    results = sclogparse.parse(log)
+    reader = sclogparse.MemoryLineReader(sclog)
+    results = reader.parse()
     result_set_hash = create_revision_hash()
 
     trsc = TreeherderResultSetCollection()
@@ -274,12 +280,6 @@ def main(argv):
 
     tjc.add(tj)
 
-    print 'trsc = ' + json.dumps(json.loads(trsc.to_json()), sort_keys=True,
-                                 indent=4, separators=(',', ': '))
-
-    print 'tjc = ' + json.dumps(json.loads(tjc.to_json()), sort_keys=True,
-                                indent=4, separators=(',', ': '))
-
     req = TreeherderRequest(
         protocol='http',
         host=config['treeherder']['repo']['host'],
@@ -290,8 +290,21 @@ def main(argv):
 
     req.post(trsc)
     req.post(tjc)
+    # maybe we should return all of this generated json in case somebody embeds this script?
 
+    return trsc, tjc
 
 if __name__ == '__main__':
-    sys.exit(0 if main(sys.argv[1:]) else 1)
+    try:
+        trsc, tjc = main(sys.argv[1:])
+        print 'trsc = ' + json.dumps(json.loads(trsc.to_json()), sort_keys=True,
+                                     indent=4, separators=(',', ': '))
+
+        print 'tjc = ' + json.dumps(json.loads(tjc.to_json()), sort_keys=True,
+                                    indent=4, separators=(',', ': '))
+        sys.exit(0)
+    except Exception as e:
+        print e
+        raise
+
 

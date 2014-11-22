@@ -58,11 +58,10 @@ def check_for_anomalies(number, line):
     if REGEXPS["sc error"].match(line):
         log_anomaly(number, line)
 
-
-def line_reader(filename):
-    number = 0
-    with open(filename, "r") as f:
-        for line in f:
+class LineReader():
+    def line_reader(self):
+        number = 0
+        for line in self.buffer:
             number += 1
             check_for_anomalies(number, line)
 
@@ -78,7 +77,28 @@ def line_reader(filename):
                 while repeat:
                     repeat = yield None
 
-    raise Unexpected_EOF_Error(number)
+        raise Unexpected_EOF_Error(number)
+
+    def parse(self):
+        reader = self.line_reader()
+        results = create_results()
+
+        try:
+            process_log(reader, results)
+        except Unexpected_EOF_Error as err:
+            log_anomaly(err.value, 'Reached unexpected EOF')
+
+        results['anomalies'] = _anomalies
+        return results
+
+
+class FileLineReader(LineReader):
+    def __init__(self, filename):
+        self.buffer = open(filename, "r")
+
+class MemoryLineReader(LineReader):
+    def __init__(self, buf):
+        self.buffer = buf.split('\n')
 
 
 def requeue_line(reader):
@@ -209,19 +229,6 @@ def process_steeplechase_cleanup(reader, results):
         if m:
             results['total failed'] = int(m.group(1))
             return
-
-def parse(filename):
-    reader = line_reader(filename)
-    results = create_results()
-
-    try:
-        process_log(reader, results)
-    except Unexpected_EOF_Error as err:
-        log_anomaly(err.value, 'Reached unexpected EOF')
-
-    results['anomalies'] = _anomalies
-    return results
-
 
 def main():
     print json.dumps(parse(sys.argv[1]), indent=4, sort_keys=True)
