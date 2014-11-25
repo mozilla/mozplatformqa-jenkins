@@ -85,7 +85,7 @@ def get_config(argv):
     return config
 
 def platform_info(package, arch, host):
-    log.error("Package = %s, arch = %s, host = %s" % (package, arch, host))
+    print "Package = %s, arch = %s, host = %s" % (package, arch, host)
 
     base_name, file = os.path.split(package)
     exp = re.compile(r"^firefox-latest-([^\.]+)\.en-US\.([^\.]+)\.(.*)$")
