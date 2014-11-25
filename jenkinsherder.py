@@ -58,7 +58,7 @@ def get_config(argv):
 
     pfi2 = platform_info(package2, args.arch2, args.host2)
 
-    my_dir = os.path.dirname(os.path.realpath(argv[0]))
+    my_dir = os.path.dirname(os.path.realpath(__file__))
     my_ini = os.path.join(my_dir, 'jenkinsherder.ini')
 
     cp = ConfigParser()
@@ -85,6 +85,8 @@ def get_config(argv):
     return config
 
 def platform_info(package, arch, host):
+    print "Package = %s, arch = %s, host = %s" % (package, arch, host)
+
     base_name, file = os.path.split(package)
     exp = re.compile(r"^firefox-latest-([^\.]+)\.en-US\.([^\.]+)\.(.*)$")
     match = exp.match(file)
