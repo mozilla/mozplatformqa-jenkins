@@ -292,17 +292,22 @@ def main(argv):
     req.post(tjc)
     # maybe we should return all of this generated json in case somebody embeds this script?
 
-    return trsc, tjc
+    return result_string, trsc, tjc
 
 if __name__ == '__main__':
     try:
-        trsc, tjc = main(sys.argv[1:])
+        result_string, trsc, tjc = main(sys.argv[1:])
         print 'trsc = ' + json.dumps(json.loads(trsc.to_json()), sort_keys=True,
                                      indent=4, separators=(',', ': '))
 
         print 'tjc = ' + json.dumps(json.loads(tjc.to_json()), sort_keys=True,
                                     indent=4, separators=(',', ': '))
-        sys.exit(0)
+        if result_string == 'busted':
+            raise BaseException('Something went wrong in the test harness.')
+        elif result_string != 'success':
+            sys.exit(1)
+        else:
+            sys.exit(0)
     except Exception as e:
         print e
         raise
