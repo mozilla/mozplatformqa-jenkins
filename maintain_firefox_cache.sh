@@ -60,31 +60,31 @@ function repackage_mac_dmg {
 }
 
 function download {
-    if [ "$release" = "nightly" ] || [ "$release" = "aurora" ] ; then
-        if [ "$release" = "aurora" ]; then
-            mozdownload --type=daily --platform="$platform" --extension="$archive_ext" --branch=mozilla-aurora
-        else
-            mozdownload --type=daily --platform="$platform" --extension="$archive_ext"
-        fi
-        status=$?
-        if [ "$status" != 0 ]; then
-            exit $status
-        fi
+    if [ "$release" = "beta" ]; then
+        mozdownload --type=tinderbox --platform="$platform" --extension="$archive_ext" --branch=mozilla-beta
+    elif [ "$release" = "aurora" ]; then
+        mozdownload --type=daily --platform="$platform" --extension="$archive_ext" --branch=mozilla-aurora
+    else
+        mozdownload --type=daily --platform="$platform" --extension="$archive_ext"
+    fi
+    status=$?
+    if [ "$status" != 0 ]; then
+        exit $status
+    fi
 
-        if [ -e $target ]; then
-            results=`find . -type f -name \*.$web_platform.$archive_ext -newer $target`
-            if [ "x$results" != 'x' ]; then
-                find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
-                find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
-            fi
-        else
-            if [ "x$release" = "xnightly" ]; then
-                tag="central"
-            else
-                tag="$release"
-            fi
-            ../copy_latest.sh *mozilla*$tag*$web_platform.$archive_ext $target
+    if [ -e $target ]; then
+        results=`find . -type f -name \*.$web_platform.$archive_ext -newer $target`
+        if [ "x$results" != 'x' ]; then
+            find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
+            find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
         fi
+    else
+        if [ "x$release" = "xnightly" ]; then
+            tag="central"
+        else
+            tag="$release"
+        fi
+        ../copy_latest.sh *mozilla*$tag*$web_platform.$archive_ext $target
     fi
 }
 
