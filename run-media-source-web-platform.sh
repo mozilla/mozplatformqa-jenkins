@@ -37,7 +37,11 @@ function unpack_mac_archive {
 }
 
 function unpack_win_archive {
-  unimplemented
+  cd $WORKSPACE
+  rm -rf firefox
+  firefox_archive_name=`basename $FIREFOX_ARCHIVE`
+  unzip -q $firefox_archive_name
+  cd ..
 }
 
 function unpack_linux_archive {
@@ -69,7 +73,9 @@ function setup_web-platform_profile {
 download_archive $FIREFOX_ARCHIVE
 if [ "$PLATFORM" = "mac" ] ; then
   unpack_mac_archive
-elif [ "$PLATFORM" = "win" ] ; then
+elif [ "$PLATFORM" = "win32" ] ; then
+  unpack_win_archive
+elif [ "$PLATFORM" = "win64"] ; then
   unpack_win_archive
 else
   unpack_linux_archive
@@ -79,27 +85,38 @@ download_archive $TESTS_ARCHIVE
 unpack_tests_archive
 setup_web-platform_profile
 
-source firefox/$OBJDIR/_virtualenv/bin/activate
 cd $WORKSPACE/tests/web-platform/harness
 pip install -r requirements_firefox.txt
 cd .
 
 if [ "$PLATFORM" = "mac" ]; then
   BINARY="$WORKSPACE/firefox.app/Contents/MacOS/firefox"
-elif [ "$PLATFORM" = "win" ]; then
+elif [ "$PLATFORM" = "win32" ]; then
+  BINARY="$WORKSPACE/firefox/firefox.exe"
+elif [ "$PLATFORM" = "win64" ]; then
   BINARY="$WORKSPACE/firefox/firefox.exe"
 else
   BINARY="$WORKSPACE/firefox/firefox"
 fi
 
-if [ "$PLATFORM" = "win" ]; then
+if [ "$PLATFORM" = "win32" ]; then
+  CERTUTIL="$WORKSPACE/tests/bin/certutil.exe"
+elif [ "$PLATFORM" = "win64" ]; then
   CERTUTIL="$WORKSPACE/tests/bin/certutil.exe"
 else
   CERTUTIL="$WORKSPACE/tests/bin/certutil"
 fi
 
 cd $WORKSPACE/tests/web-platform
-DYLD_LIBRARY_PATH=/Volumes/Yangisawa/dev/sydvicious/mozplatformqa-jenkins/firefox.app/Contents/MacOS python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
+if [ "$PLATFORM" = "mac" ] ; then
+	DYLD_LIBRARY_PATH=$WORKSPACE/firefox.app/Contents/MacOS python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
+elif [ "$PLATFORM" = "win32" ] ; then
+    PATH=$WORKSPACE/firefox:$PATH python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
+elif [ "$PLATFORM" = "win64" ] ; then
+    PATH=$WORKSPACE/firefox/$PATH python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
+else
+    LD_LIBRARY_PATH=$WORKSPACE/firefox python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key	
+fi	
 UNEXPECTED_RESULTS=`grep --count expected\": $WORKSPACE/tests.log`
 if [ $UNEXPECTED_RESULTS -ne "0" ]; then
   exit 1
