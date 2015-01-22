@@ -3,16 +3,23 @@
 # This must be called from an environment where python is setup correctly.
 # The firefox binary and the tests binary have to have been downloaded and expanded.
 # The first argument is a url to the firefox binary. The second is a url to the tests
-# package. The third argument is the platform. The valid values are "mac", "win",
-# and "linux".
+# package. The third argument is the platform. The valid values are "mac", "win32",
+# "win64", and "linux".
+# On Windows, this requires the mozilla-build system, installed at c:\mozilla-build.
+# This also requires pip and virtualenv to have been installed into the python 
+# distribution. Not ideal.
 
 FIREFOX_ARCHIVE=$1
 TESTS_ARCHIVE=$2
 PLATFORM=$3
 
-OBJDIR="bogus"
-
 WORKSPACE=`pwd`
+
+if [ "$PLATFORM" = "win32" ]; then
+    export PATH=/bin:/c/mozilla-build/wget:/c/mozilla-build/info-zip:/c/mozilla-build/python:/c/mozilla-build/python/Scripts
+elif [ "$PLATFORM" = "win64" ]; then
+    export PATH=/bin:/c/mozilla-build/wget:/c/mozilla-build/info-zip:/c/mozilla-build/python:/c/mozilla-build/python/Scripts
+fi
 
 function usage {
     echo "Usage: run-media-source-web-platform.sh <firefox_archive> <tests_archive> <platform> <python_installation>"
