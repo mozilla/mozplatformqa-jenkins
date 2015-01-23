@@ -48,7 +48,6 @@ function unpack_win_archive {
   rm -rf firefox
   firefox_archive_name=`basename $FIREFOX_ARCHIVE`
   unzip -q $firefox_archive_name
-  cd ..
 }
 
 function unpack_linux_archive {
@@ -67,7 +66,7 @@ function unpack_tests_archive {
   mkdir -p tests
   tests_archive_name=`basename $TESTS_ARCHIVE`
   cd tests
-  unzip -q ../$tests_archive_name
+  unzip -q $WORKSPACE/$tests_archive_name
   cd ..
 }
 
