@@ -57,7 +57,7 @@ function unpack_linux_archive {
 
 function download_archive {
   archive_name=`basename $1`
-  rm $archive_name
+  rm -f $archive_name
   wget $1
 }
 
