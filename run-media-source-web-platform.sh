@@ -6,7 +6,7 @@
 # package. The third argument is the platform. The valid values are "mac", "win32",
 # "win64", and "linux".
 # On Windows, this requires the mozilla-build system, installed at c:\mozilla-build.
-# This also requires pip and virtualenv to have been installed into the python 
+# This also requires pip and virtualenv to have been installed into the python
 # distribution. Not ideal.
 
 FIREFOX_ARCHIVE=$1
@@ -121,10 +121,10 @@ elif [ "$PLATFORM" = "win32" ] ; then
 elif [ "$PLATFORM" = "win64" ] ; then
     PATH=$WORKSPACE/firefox/$PATH python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
 else
-    LD_LIBRARY_PATH=$WORKSPACE/firefox python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key	
-fi	
-UNEXPECTED_RESULTS=`grep --count expected\": $WORKSPACE/tests.log`
-if [ $UNEXPECTED_RESULTS -ne "0" ]; then
+    LD_LIBRARY_PATH=$WORKSPACE/firefox python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
+fi
+UNEXPECTED_RESULTS=`grep --count Got\ 0\ unexpected\ results $WORKSPACE/tests.log`
+if [ $UNEXPECTED_RESULTS -eq "0" ]; then
   exit 1
 fi
 exit 0
