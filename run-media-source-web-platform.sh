@@ -81,7 +81,7 @@ if [ "$PLATFORM" = "mac" ] ; then
   unpack_mac_archive
 elif [ "$PLATFORM" = "win32" ] ; then
   unpack_win_archive
-elif [ "$PLATFORM" = "win64"] ; then
+elif [ "$PLATFORM" = "win64" ] ; then
   unpack_win_archive
 else
   unpack_linux_archive
