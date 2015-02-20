@@ -106,7 +106,7 @@ elif [ $platform = 'win32' ]; then
     web_platform='win32'
     archive_ext='zip'
 elif [ $platform = 'win64' ]; then
-    web_platform='win64-x86_64'
+    web_platform='win64'
     archive_ext='zip'
 fi
 
