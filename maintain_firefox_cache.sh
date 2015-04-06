@@ -60,11 +60,13 @@ function repackage_mac_dmg {
 }
 
 function download {
+    branch_name=$release
     if [ "$release" = "beta" ]; then
         mozdownload --type=tinderbox --platform="$platform" --extension="$archive_ext" --branch=mozilla-beta
     elif [ "$release" = "aurora" ]; then
         mozdownload --type=daily --platform="$platform" --extension="$archive_ext" --branch=mozilla-aurora
     else
+        branch_name="central"
         mozdownload --type=daily --platform="$platform" --extension="$archive_ext"
     fi
     status=$?
@@ -73,10 +75,10 @@ function download {
     fi
 
     if [ -e $target ]; then
-        results=`find . -type f -name \*.$web_platform.$archive_ext -newer $target`
+        results=`find . -type f -name \*$branch_name\*$web_platform.$archive_ext -newer $target`
         if [ "x$results" != 'x' ]; then
-            find . -type f -name \*.$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -exec mv '{}' /tmp \;
-            find . -type f -name \*.$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
+            find . -type f -name \*$branch_name\*$web_platform.$archive_ext -not -newer $target -not -samefile $target -print -delete
+            find . -type f -name \*$branch_name\*$web_platform.$archive_ext -newer $target -print -exec ../copy_latest.sh '{}' $target \;
         fi
     else
         if [ "x$release" = "xnightly" ]; then
