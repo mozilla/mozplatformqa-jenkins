@@ -15,10 +15,38 @@ PLATFORM=$3
 
 WORKSPACE=`pwd`
 
+function set_virtualenv {
+    # Try to use the virtual env that may have been activated
+    # before this script was called from cmd.exe; otherwise create a new one.
+    if [ -d "$VIRTUAL_ENV" ]; then
+        unset _OLD_VIRTUAL_PATH
+        unset _OLD_VIRTUAL_PYTHONHOME
+        unset _OLD_VIRTUAL_PS1
+        source $VIRTUAL_ENV/Scripts/activate
+    else
+        VENV_NAME=venv
+        cd $WORKSPACE
+        if [ -d "./$VENV_NAME" ]; then
+            rm -rf ./$VENV_NAME
+        fi
+        virtualenv $VENV_NAME
+        source $VENV_NAME/Scripts/activate
+    fi
+
+    echo python is $(which python)
+    echo PATH is $PATH
+    echo VIRTUAL_ENV is $VIRTUAL_ENV
+}
+
+# On Windows, we expect this script to be called via
+# "c:\mozilla-build\msys\bin\bash -xe $script" from cmd.exe
+# in which case the bash PATH is not set up properly and must be repopulated
 if [ "$PLATFORM" = "win32" ]; then
     export PATH=/bin:/c/mozilla-build/wget:/c/mozilla-build/info-zip:/c/mozilla-build/python:/c/mozilla-build/python/Scripts
+    set_virtualenv
 elif [ "$PLATFORM" = "win64" ]; then
     export PATH=/bin:/c/mozilla-build/wget:/c/mozilla-build/info-zip:/c/mozilla-build/python:/c/mozilla-build/python/Scripts
+    set_virtualenv
 fi
 
 function usage {
