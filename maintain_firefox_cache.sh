@@ -6,7 +6,14 @@ if [ $1 = '--tests' ]; then
     shift
 fi
 
+symbols='no'
+if [ $1 = '--symbols' ]; then
+    symbols='yes'
+    shift
+fi
+
 platform=$1
+
 if [ "$2" = "" ]; then
     release="nightly"
 else
@@ -20,8 +27,9 @@ if [ "$2" = "repackage" ]; then
 fi
 
 function usage {
-    "Usage: maintain_firefox_cache.sh |--tests| <platform> |<release>|"
+    "Usage: maintain_firefox_cache.sh |--tests|--symbols|<platform>|<release>|"
     "<release> can be one of nightly, aurora, beta, release and esr."
+    "Use at most one of --tests or --symbols."
     exit 1
 }
 
@@ -116,6 +124,10 @@ if [ "$tests" = 'yes' ]; then
     archive_ext='tests.zip'
 fi
 
+if [ "$symbols" = 'yes' ]; then
+    archive_ext='crashreporter-symbols.zip'
+fi
+
 wd=`pwd`
 mkdir -p releases
 cd releases
@@ -124,7 +136,8 @@ target="firefox-latest-$release.en-US.$web_platform.$archive_ext"
 
 download
 
-if [ "x$tests" != "xyes" ] ; then
+# if binary was requested, also download txt
+if [ "x$tests" != "xyes" -a "x$symbols" != "xyes" ] ; then
     archive_ext='txt'
     target="firefox-latest-$release.en-US.$web_platform.$archive_ext"
     download
@@ -133,5 +146,3 @@ fi
 #repackage_mac_dmg
 
 cd $wd
-
-
