@@ -215,8 +215,9 @@ def main(argv):
         log.info("run_steeplechase threw %s" % e)
         raise
 
-    # Second, process the output.
-
+    # Second, process the output. Note that this needs to be updated since
+    # treeherder-dev is dead.
+    return
 
     app_revision, app_repository = get_app_information(config)
     files = get_files(config)
