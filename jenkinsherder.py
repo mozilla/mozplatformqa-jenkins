@@ -215,10 +215,6 @@ def main(argv):
         log.info("run_steeplechase threw %s" % e)
         raise
 
-    # Second, process the output. Note that this needs to be updated since
-    # treeherder-dev is dead.
-    return
-
     app_revision, app_repository = get_app_information(config)
     files = get_files(config)
     push_time = int(os.stat(files[0]).st_ctime)
@@ -280,6 +276,10 @@ def main(argv):
     tj.add_artifact('Results', 'json', results)
 
     tjc.add(tj)
+
+    # Second, process the output. Note that this needs to be updated since
+    # treeherder-dev is dead.
+    return result_string, trsc, tjc
 
     req = TreeherderRequest(
         protocol='http',
