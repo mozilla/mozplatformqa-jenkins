@@ -3,5 +3,5 @@ releases
 dist
 logs
 steeplechase.egg-info
-
+credentials.ignore
 
