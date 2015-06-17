@@ -18,6 +18,7 @@ import re
 import sys
 import subprocess
 import mozlog
+import traceback
 
 from s3 import S3Bucket
 
@@ -343,15 +344,21 @@ def main(argv):
     try:
         sclog, status = run_steeplechase(config, sclog)
     except Exception as e:
-        sclog.info("run_steeplechase threw %s" % e)
-        raise
+        sclog.info("Running steeplechase failed: %s" % traceback.format_exc())
 
     # Second, process the output.
     log_files = get_log_files(config['log_dest'])
-    reader = sclogparse.MemoryLineReader(sclog)
-    results = reader.parse()
-    result_string = get_result_string(results)
-    job_details = get_result_summary(results)
+    try:
+        reader = sclogparse.MemoryLineReader(sclog)
+        results = reader.parse()
+        result_string = get_result_string(results)
+        job_details = get_result_summary(results)
+    except Exception as e:
+        logger.error('Obtaining result '
+                     'summary failed: %s' % traceback.format_exc())
+        result_string = 'busted'
+        job_details = []
+        results = {}
 
     # Populate jobs and submit job to treeherder (including log upload)
     if not config['no_treeherding']:
@@ -371,7 +378,8 @@ def main(argv):
                         'value': j.jenkins_build_tag,
                         'content_type': 'text',
                         'title': 'artifact uploaded'})
-            j.artifacts.append(('Results', 'json', results))
+            if results:
+                j.artifacts.append(('Results', 'json', results))
             # TODO - fix this fake log parsing
             if log_files:
                 failures = []
