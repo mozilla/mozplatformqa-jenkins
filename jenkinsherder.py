@@ -73,6 +73,7 @@ def get_config(argv):
     parser.add_argument('--jenkins-build-url',
                         default=os.environ.get('BUILD_URL', ''))
     parser.add_argument('--jenkins-build-tag', default=os.environ.get('BUILD_TAG', ''))
+    parser.add_argument("--no-treeherding", action="store_true")
     parser.add_argument('--job-name')
     parser.add_argument('--job-symbol')
     parser.add_argument('--treeherder-url')
@@ -118,6 +119,7 @@ def get_config(argv):
         config['treeherder_credentials_path'] = args.treeherder_credentials_path
     if args.s3_credentials_path:
         config['s3_credentials_path'] = args.s3_credentials_path
+    config['no_treeherding'] = args.no_treeherding or False
 
     return config
 
@@ -309,29 +311,31 @@ def main(argv):
     logger.debug('config = %s' % json.dumps(config,
                                             indent=4,
                                             separators=(',', ': ')))
-    th_options = get_treeherder_options(config['treeherder_url'],
-                                        config['treeherder_credentials_path'])
-    treeherder = Tier2Treeherder(logger, th_options,
-                                 get_s3_bucket(config['s3_credentials_path']))
+    if not config['no_treeherding']:
+        th_options = get_treeherder_options(config['treeherder_url'],
+                                            config['treeherder_credentials_path'])
+        treeherder = Tier2Treeherder(logger, th_options,
+                                     get_s3_bucket(config['s3_credentials_path']))
 
-    # Each job represents one Firefox instance in the WebRTC pair
-    job1 = SteeplechaseJob(config['platform_info'])
-    job2 = SteeplechaseJob(config['platform_info2'])
-    for j in [job1, job2]:
-        j.job_name = config['job_name']
-        j.job_symbol = config['job_symbol']
-        j.group_name = config['group_name']
-        j.group_symbol = config['group_symbol']
-        j.description = config['job_description']
-        j.reason = config['job_reason']
-        j.who = config['job_who']
-    if job1.build['repo'] == job2.build['repo']:
-        treeherder.submit_running([job1, job2])
-    else:
-        # Jobs that belong to different repos cannot be submitted in one
-        # collection
-        treeherder.submit_running([job1])
-        treeherder.submit_running([job2])
+        # Each job represents one Firefox instance in the WebRTC pair
+        job1 = SteeplechaseJob(config['platform_info'])
+        job2 = SteeplechaseJob(config['platform_info2'])
+        for j in [job1, job2]:
+            j.job_name = config['job_name']
+            j.job_symbol = config['job_symbol']
+            j.group_name = config['group_name']
+            j.group_symbol = config['group_symbol']
+            j.description = config['job_description']
+            j.reason = config['job_reason']
+            j.who = config['job_who']
+        if job1.build['repo'] == job2.build['repo']:
+            treeherder.submit_running([job1, job2])
+        else:
+            # Jobs that belong to different repos cannot be submitted in one
+            # collection
+            treeherder.submit_running([job1])
+            treeherder.submit_running([job2])
+
     sclog = mozlog.getLogger('steeplechase')
     sclog.setLevel(mozlog.DEBUG)
 
@@ -343,7 +347,6 @@ def main(argv):
         raise
 
     # Second, process the output.
-    job1.end_timestamp = job2.end_timestamp = timestamp_now()
     log_files = get_log_files(config['log_dest'])
     reader = sclogparse.MemoryLineReader(sclog)
     results = reader.parse()
@@ -351,35 +354,37 @@ def main(argv):
     job_details = get_result_summary(results)
 
     # Populate jobs and submit job to treeherder (including log upload)
-    for j in [job1, job2]:
-        j.log_files += log_files
-        j.result = result_string
-        j.job_details += job_details
-        j.jenkins_build_tag = config['jenkins_build_tag']
-        j.jenkins_build_url = config['jenkins_build_url']
-        j.job_details.append({
-                    'url': j.jenkins_build_url,
-                    'value': 'Jenkins Build URL (VPN required)',
-                    'content_type': 'link',
-                    'title': 'artifact uploaded'})
-        j.job_details.append({
-                    'value': j.jenkins_build_tag,
-                    'content_type': 'text',
-                    'title': 'artifact uploaded'})
-        j.artifacts.append(('Results', 'json', results))
-        # TODO - fix this fake log parsing
-        if log_files:
-            failures = []
-            if results.get('total failed'):
-                failures = ['Total failed: %s' % results['total failed']]
-            j.parsed_logs[log_files[0]] = failures
-    if job1.build['repo'] == job2.build['repo']:
-        treeherder.submit_complete([job1, job2])
-    else:
-        # Jobs that belong to different repos cannot be submitted in one
-        # collection
-        treeherder.submit_complete([job1])
-        treeherder.submit_complete([job2])
+    if not config['no_treeherding']:
+        job1.end_timestamp = job2.end_timestamp = timestamp_now()
+        for j in [job1, job2]:
+            j.log_files += log_files
+            j.result = result_string
+            j.job_details += job_details
+            j.jenkins_build_tag = config['jenkins_build_tag']
+            j.jenkins_build_url = config['jenkins_build_url']
+            j.job_details.append({
+                        'url': j.jenkins_build_url,
+                        'value': 'Jenkins Build URL (VPN required)',
+                        'content_type': 'link',
+                        'title': 'artifact uploaded'})
+            j.job_details.append({
+                        'value': j.jenkins_build_tag,
+                        'content_type': 'text',
+                        'title': 'artifact uploaded'})
+            j.artifacts.append(('Results', 'json', results))
+            # TODO - fix this fake log parsing
+            if log_files:
+                failures = []
+                if results.get('total failed'):
+                    failures = ['Total failed: %s' % results['total failed']]
+                j.parsed_logs[log_files[0]] = failures
+        if job1.build['repo'] == job2.build['repo']:
+            treeherder.submit_complete([job1, job2])
+        else:
+            # Jobs that belong to different repos cannot be submitted in one
+            # collection
+            treeherder.submit_complete([job1])
+            treeherder.submit_complete([job2])
     return result_string
 
 
