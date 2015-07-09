@@ -136,6 +136,12 @@ target="firefox-latest-$release.en-US.$web_platform.$archive_ext"
 
 download
 
+if [ "$tests" = 'yes' ]; then
+    archive_ext='mochitest.tests.zip'
+    target="firefox-latest-$release.en-US.$web_platform.$archive_ext"
+    download
+fi
+
 # if binary was requested, also download txt
 if [ "x$tests" != "xyes" -a "x$symbols" != "xyes" ] ; then
     archive_ext='txt'
