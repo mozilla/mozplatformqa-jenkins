@@ -121,7 +121,7 @@ elif [ $platform = 'win64' ]; then
 fi
 
 if [ "$tests" = 'yes' ]; then
-    archive_ext='tests.zip'
+    archive_ext='common.tests.zip'
 fi
 
 if [ "$symbols" = 'yes' ]; then
