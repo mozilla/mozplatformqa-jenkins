@@ -9,9 +9,10 @@
 # This also requires pip and virtualenv to have been installed into the python
 # distribution. Not ideal.
 
-FIREFOX_ARCHIVE=$1
-TESTS_ARCHIVE=$2
-PLATFORM=$3
+PLATFORM=$1
+FIREFOX_ARCHIVE=$2
+COMMON_TESTS_ARCHIVE=$3
+WEB_PLATFORM_TESTS_ARCHIVE=$4
 
 WORKSPACE=`pwd`
 
@@ -50,7 +51,7 @@ elif [ "$PLATFORM" = "win64" ]; then
 fi
 
 function usage {
-    echo "Usage: run-media-source-web-platform.sh <firefox_archive> <tests_archive> <platform> <python_installation>"
+    echo "Usage: run-media-source-web-platform.sh  <platform> <firefox_archive> <common_tests_archive> <web_platform_archive>"
     exit 1
 }
 
@@ -90,11 +91,10 @@ function download_archive {
 
 function unpack_tests_archive {
   cd $WORKSPACE
-  rm -rf tests
+  archive_name=`basename $1`
   mkdir -p tests
-  tests_archive_name=`basename $TESTS_ARCHIVE`
   cd tests
-  unzip -q $WORKSPACE/$tests_archive_name
+  unzip -q $WORKSPACE/$archive_name
   cd ..
 }
 
@@ -115,8 +115,12 @@ else
   unpack_linux_archive
 fi
 
-download_archive $TESTS_ARCHIVE
-unpack_tests_archive
+rm -rf $WORKSPACE/tests
+download_archive $COMMON_TESTS_ARCHIVE
+unpack_tests_archive $COMMON_TESTS_ARCHIVE
+download_archive $WEB_PLATFORM_TESTS_ARCHIVE
+unpack_tests_archive $WEB_PLATFORM_TESTS_ARCHIVE
+
 setup_web-platform_profile
 
 cd $WORKSPACE/tests/web-platform/harness
