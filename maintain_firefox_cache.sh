@@ -140,6 +140,9 @@ if [ "$tests" = 'yes' ]; then
     archive_ext='mochitest.tests.zip'
     target="firefox-latest-$release.en-US.$web_platform.$archive_ext"
     download
+    archive_ext='web-platform.tests.zip'
+    target="firefox-latest-$release.en-US.$web_platform.$archive_ext"
+    download
 fi
 
 # if binary was requested, also download txt
