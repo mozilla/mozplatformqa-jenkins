@@ -151,7 +151,7 @@ if [ "$PLATFORM" = "mac" ] ; then
 elif [ "$PLATFORM" = "win32" ] ; then
     PATH=$WORKSPACE/firefox:$PATH python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
 elif [ "$PLATFORM" = "win64" ] ; then
-    PATH=$WORKSPACE/firefox/$PATH python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
+    PATH=$WORKSPACE/firefox:$PATH python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
 else
     LD_LIBRARY_PATH=$WORKSPACE/firefox python runtests.py --product=firefox --include=media-source --log-mach=- --log-raw=$WORKSPACE/tests.log --binary=$BINARY --certutil=$CERTUTIL --ca-cert-path=$WORKSPACE/tests/web-platform/certs/cacert.pem --host-cert-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.pem --host-key-path=$WORKSPACE/tests/web-platform/certs/web-platform.test.key
 fi
