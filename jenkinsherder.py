@@ -17,17 +17,18 @@ import argparse
 import re
 import sys
 import subprocess
-import mozlog
+from mozlog.unstructured import logger as mozlogger
 import traceback
 
 from s3 import S3Bucket
 
 import sclogparse
 import treeherder_config
-from treeherding import (TestJob, Tier2Treeherder, TreeherderOptions,
+from treeherding import (TestJob, TreeherderSubmission, TreeherderOptions,
                          timestamp_now, get_platform_attributes)
-logger = mozlog.getLogger(__file__)
-logger.setLevel(mozlog.DEBUG)
+# TODO
+logger = mozlogger.getLogger('jenkinsherder')
+logger.setLevel(mozlogger.DEBUG)
 
 
 class SteeplechaseJob(TestJob):
@@ -312,11 +313,17 @@ def main(argv):
     logger.debug('config = %s' % json.dumps(config,
                                             indent=4,
                                             separators=(',', ': ')))
+
     if not config['no_treeherding']:
-        th_options = get_treeherder_options(config['treeherder_url'],
-                                            config['treeherder_credentials_path'])
-        treeherder = Tier2Treeherder(logger, th_options,
-                                     get_s3_bucket(config['s3_credentials_path']))
+        th_options = get_treeherder_options(
+                        config['treeherder_url'],
+                        config['treeherder_credentials_path'])
+        try:
+            treeherder = TreeherderSubmission(logger, th_options,
+                            get_s3_bucket(config['s3_credentials_path']))
+        except Exception:
+            logger.error('Setup of Treeherder submission '
+                         'failed: %s' % traceback.format_exc())
 
         # Each job represents one Firefox instance in the WebRTC pair
         job1 = SteeplechaseJob(config['platform_info'])
@@ -329,16 +336,20 @@ def main(argv):
             j.description = config['job_description']
             j.reason = config['job_reason']
             j.who = config['job_who']
-        if job1.build['repo'] == job2.build['repo']:
-            treeherder.submit_running([job1, job2])
-        else:
-            # Jobs that belong to different repos cannot be submitted in one
-            # collection
-            treeherder.submit_running([job1])
-            treeherder.submit_running([job2])
+        try:
+            if job1.build['repo'] == job2.build['repo']:
+                treeherder.submit_running([job1, job2])
+            else:
+                # Jobs that belong to different repos cannot be submitted in
+                # one collection
+                treeherder.submit_running([job1])
+                treeherder.submit_running([job2])
+        except Exception:
+            logger.error('Treeherder submission '
+                         'failed: %s' % traceback.format_exc())
 
-    sclog = mozlog.getLogger('steeplechase')
-    sclog.setLevel(mozlog.DEBUG)
+    sclog = mozlogger.getLogger('steeplechase')
+    sclog.setLevel(mozlogger.DEBUG)
 
     # First, run steeplechase.
     try:
@@ -386,13 +397,18 @@ def main(argv):
                 if results.get('total failed'):
                     failures = ['Total failed: %s' % results['total failed']]
                 j.parsed_logs[log_files[0]] = failures
-        if job1.build['repo'] == job2.build['repo']:
-            treeherder.submit_complete([job1, job2])
-        else:
-            # Jobs that belong to different repos cannot be submitted in one
-            # collection
-            treeherder.submit_complete([job1])
-            treeherder.submit_complete([job2])
+        try:
+            if job1.build['repo'] == job2.build['repo']:
+                treeherder.submit_complete([job1, job2])
+            else:
+                # Jobs that belong to different repos cannot be submitted in one
+                # collection
+                treeherder.submit_complete([job1])
+                treeherder.submit_complete([job2])
+        except Exception as e:
+            logger.error('Treeherder submission '
+                         'failed: %s' % traceback.format_exc())
+
     return result_string
 
 
