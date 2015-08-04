@@ -17,7 +17,7 @@ import argparse
 import re
 import sys
 import subprocess
-from mozlog.unstructured import logger as mozlogger
+import mozlog
 import traceback
 
 from s3 import S3Bucket
@@ -26,9 +26,9 @@ import sclogparse
 import treeherder_config
 from treeherding import (TestJob, TreeherderSubmission, TreeherderOptions,
                          timestamp_now, get_platform_attributes)
-# TODO
-logger = mozlogger.getLogger('jenkinsherder')
-logger.setLevel(mozlogger.DEBUG)
+
+logger = mozlog.getLogger('jenkinsherder')
+logger.setLevel(mozlog.DEBUG)
 
 
 class SteeplechaseJob(TestJob):
@@ -348,8 +348,8 @@ def main(argv):
             logger.error('Treeherder submission '
                          'failed: %s' % traceback.format_exc())
 
-    sclog = mozlogger.getLogger('steeplechase')
-    sclog.setLevel(mozlogger.DEBUG)
+    sclog = mozlog.getLogger('steeplechase')
+    sclog.setLevel(mozlog.DEBUG)
 
     # First, run steeplechase.
     try:
