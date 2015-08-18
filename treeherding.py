@@ -373,6 +373,8 @@ class TreeherderSubmission(object):
                               'missing url, project or revision.')
             return None
 
+        # Truncate revision for use in Treeherder API until bug 1194908 fixed.
+        rev = rev[:12]
         revurl = '%s/api/project/%s/resultset/?revision=%s' % (
             self.url, project, rev)
         response = get_from_treeherder(revurl, self.logger)
