@@ -1,2 +1,7 @@
 releases
+*.pyc
+dist
+logs
+steeplechase.egg-info
+credentials.ignore
 
