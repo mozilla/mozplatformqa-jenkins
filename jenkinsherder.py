@@ -10,6 +10,7 @@ from ConfigParser import ConfigParser
 import glob
 import hashlib
 import json
+import logging
 import os
 from sys import argv
 import socket
@@ -27,8 +28,8 @@ import treeherder_config
 from treeherding import (TestJob, TreeherderSubmission, TreeherderOptions,
                          timestamp_now, get_platform_attributes)
 
-logger = mozlog.getLogger('jenkinsherder')
-logger.setLevel(mozlog.DEBUG)
+logger = mozlog.unstructured.getLogger('jenkinsherder')
+logger.setLevel(logging.DEBUG)
 
 
 class SteeplechaseJob(TestJob):
@@ -348,8 +349,8 @@ def main(argv):
             logger.error('Treeherder submission '
                          'failed: %s' % traceback.format_exc())
 
-    sclog = mozlog.getLogger('steeplechase')
-    sclog.setLevel(mozlog.DEBUG)
+    sclog = mozlog.unstructured.getLogger('steeplechase')
+    sclog.setLevel(logging.DEBUG)
 
     # First, run steeplechase.
     try:
