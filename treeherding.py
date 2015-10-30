@@ -434,7 +434,6 @@ class TreeherderSubmission(object):
             # XXX need to send these until Bug 1066346 fixed.
             tj.add_start_timestamp(j.submit_timestamp)
             tj.add_end_timestamp(j.submit_timestamp)
-            tj.add_build_url(j.build_url)
             tj.add_build_info(j.build['os_name'],
                               j.build['platform'],
                               j.build['architecture'])
@@ -499,7 +498,6 @@ class TreeherderSubmission(object):
             tj.add_end_timestamp(j.start_timestamp)
             #
             tj.add_machine(j.machine['host'])
-            tj.add_build_url(j.build_url)
             tj.add_build_info(j.build['os_name'],
                               j.build['platform'],
                               j.build['architecture'])
@@ -582,8 +580,6 @@ class TreeherderSubmission(object):
             tj.add_submit_timestamp(j.submit_timestamp)
             tj.add_start_timestamp(j.start_timestamp)
             tj.add_end_timestamp(j.end_timestamp)
-            if j.build_url:
-                tj.add_build_url(j.build_url)
             tj.add_build_info(j.build['os_name'],
                               j.build['platform'],
                               j.build['architecture'])
@@ -733,7 +729,6 @@ class TestJob(object):
         # May include test results, links to logs, etc.
         self.job_details = []
         self.artifacts = []  # tuples of name, type, blob
-        self.build_url = ''
         self.build = {
             'product': 'Firefox',
             'release': '',
@@ -748,7 +743,6 @@ class TestJob(object):
             'package': '',
             'revision': '',
             'build_id': '',
-            'build_url': ''
         }
         self.machine = {
             'os_name': '',
