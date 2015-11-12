@@ -19,7 +19,7 @@ import json
 
 import mozinfo
 import mozversion
-from thclient import TreeherderAuth, TreeherderClient, TreeherderJobCollection
+from thclient import TreeherderClient, TreeherderJobCollection
 
 from s3 import S3Error
 
@@ -303,12 +303,10 @@ class TreeherderSubmission(object):
                           'job_collection =\n%s' %
                           pretty(job_collection.get_collection_data()))
 
-        auth = TreeherderAuth(self.credentials[project]['consumer_key'],
-                              self.credentials[project]['consumer_secret'],
-                              project)
         client = TreeherderClient(protocol=self.protocol,
                                   host=self.server,
-                                  auth=auth)
+                                  client_id=self.credentials['client_id'],
+                                  secret=self.credentials['secret'])
         for attempt in range(1, self.retries + 1):
             try:
                 client.post_collection(project, job_collection)
@@ -434,7 +432,6 @@ class TreeherderSubmission(object):
             # XXX need to send these until Bug 1066346 fixed.
             tj.add_start_timestamp(j.submit_timestamp)
             tj.add_end_timestamp(j.submit_timestamp)
-            tj.add_build_url(j.build_url)
             tj.add_build_info(j.build['os_name'],
                               j.build['platform'],
                               j.build['architecture'])
@@ -499,7 +496,6 @@ class TreeherderSubmission(object):
             tj.add_end_timestamp(j.start_timestamp)
             #
             tj.add_machine(j.machine['host'])
-            tj.add_build_url(j.build_url)
             tj.add_build_info(j.build['os_name'],
                               j.build['platform'],
                               j.build['architecture'])
@@ -582,8 +578,6 @@ class TreeherderSubmission(object):
             tj.add_submit_timestamp(j.submit_timestamp)
             tj.add_start_timestamp(j.start_timestamp)
             tj.add_end_timestamp(j.end_timestamp)
-            if j.build_url:
-                tj.add_build_url(j.build_url)
             tj.add_build_info(j.build['os_name'],
                               j.build['platform'],
                               j.build['architecture'])
@@ -733,7 +727,6 @@ class TestJob(object):
         # May include test results, links to logs, etc.
         self.job_details = []
         self.artifacts = []  # tuples of name, type, blob
-        self.build_url = ''
         self.build = {
             'product': 'Firefox',
             'release': '',
@@ -748,7 +741,6 @@ class TestJob(object):
             'package': '',
             'revision': '',
             'build_id': '',
-            'build_url': ''
         }
         self.machine = {
             'os_name': '',
