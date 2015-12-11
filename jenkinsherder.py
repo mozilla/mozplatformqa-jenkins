@@ -28,6 +28,7 @@ import treeherder_config
 from treeherding import (TestJob, TreeherderSubmission, TreeherderOptions,
                          timestamp_now, get_platform_attributes)
 
+logging.basicConfig()
 logger = mozlog.unstructured.getLogger('jenkinsherder')
 logger.setLevel(logging.DEBUG)
 
