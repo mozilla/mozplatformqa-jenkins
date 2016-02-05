@@ -27,7 +27,11 @@ import re
 import sys
 import traceback
 
-mozharnesspath = os.environ.get('MOZHARNESSHOME')
+cwd = os.getcwd()
+mozharnesspath = os.path.join(cwd, 'mozharness')
+if not os.path.exists(mozharnesspath):
+    mozharnesspath = os.environ.get('MOZHARNESSHOME')
+
 if mozharnesspath:
     sys.path.insert(1, mozharnesspath)
 else:
@@ -38,13 +42,9 @@ from mozharness.base.log import (INFO, ERROR, WARNING, FATAL,
 from mozharness.base.script import (BaseScript, PreScriptAction,
                                     PostScriptAction)
 from mozharness.mozilla.testing.firefox_media_tests import (
-    FirefoxMediaTestsBase, TESTFAILED, SUCCESS
-from mozharness.mozilla.testing.testbase import (TestingMixin,
-                                                 testing_config_options)
-from mozharness.mozilla.testing.unittest import TestSummaryOutputParserHelper
-
+    FirefoxMediaTestsBase, TESTFAILED, SUCCESS, media_test_config_options
 )
-
+from mozharness.mozilla.testing.unittest import TestSummaryOutputParserHelper
 
 BUSTED = 'busted'
 TESTFAILED = 'testfailed'
@@ -146,6 +146,8 @@ class TreeherdingMixin(object):
             return
         dirs = self.query_abs_dirs()
         th_requirements = os.path.join(dirs['base_work_dir'],
+                                       'mozplatformqa-jenkins',
+                                       'external-media-tests',
                                        'treeherding_requirements.txt')
         if os.path.isfile(th_requirements):
             self.register_virtualenv_module(requirements=[th_requirements])
@@ -285,9 +287,9 @@ class TreeherdingMixin(object):
             self.info("Treeherding is off or not set up; nothing to do.")
             return
         self.treeherder.submit_complete([self.job])
+        
 
-
-class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
+class FirefoxMediaTest(TreeherdingMixin, FirefoxMediaTestsBase):
     error_list = [
         {'substr': 'FAILED (errors=', 'level': WARNING},
         {'substr': r'''Could not successfully complete transport of message to Gecko, socket closed''', 'level': ERROR},
@@ -307,33 +309,6 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
           "default": None,
           "help": "URL to the crashreporter-symbols.zip",
           }],
-        [["--media-urls"],
-         {"action": "store",
-          "dest": "media_urls",
-          "default": "firefox_media_tests/urls/default.ini",
-          "help": "Path to ini file that lists media urls for tests.",
-          }],
-        [["--profile"],
-         {"action": "store",
-          "dest": "profile",
-          "default": None,
-          "help": "Path to FF profile that should be used by Marionette",
-          }],
-        [["--test-timeout"],
-         {"action": "store",
-          "dest": "test_timeout",
-          "default": 10000,
-          "help": ("Number of seconds without output before"
-                    "firefox-media-tests is killed."
-                    "Set this based on expected time for all media to play."),
-          }],
-        [["--tests"],
-         {"action": "store",
-          "dest": "tests",
-          "default": None,
-          "help": ("Test(s) to run. Path to test_*.py or "
-                   "test manifest (*.ini)"),
-          }],
         [["--jenkins-build-tag"],
          {"action": "store",
           "dest": "jenkins_build_tag",
@@ -352,23 +327,7 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
           "default": None,
           "help": r"Default: '%H:%M:%S'",
           }],
-        [["--e10s"],
-         {"dest": "e10s",
-          "action": "store_true",
-          "default": False,
-          "help": "Enable e10s when running marionette tests."}],
-        [["--browsermob-script"],
-         {"dest": "browsermob_script",
-          "action": "store",
-          "default": None,
-          "help": "path to the browsermob-proxy shell script or batch file"}],
-        [["--browsermob-port"],
-         {"dest": "browsermob_port",
-          "action": "store",
-          "default": None,
-          "help": "port to run the browsermob proxy on"}],
-    ] + (copy.deepcopy(testing_config_options) +
-         copy.deepcopy(treeherding_config_options))
+    ] + copy.deepcopy(treeherding_config_options)
 
     def __init__(self):
         super(FirefoxMediaTest, self).__init__(
@@ -378,7 +337,7 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
                            'create-virtualenv',
                            'install',
                            'submit_treeherder_running',
-                           'run_marionette_tests',
+                           'run-media-tests',
                            'submit_treeherder_complete',
                            ],
               default_actions=['clobber',
@@ -386,11 +345,12 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
                                'create-virtualenv',
                                'install',
                                'submit_treeherder_running',
-                               'run_marionette_tests',
+                               'run-media-tests',
                                'submit_treeherder_complete',
                                ],
               config={'download_symbols': True, },
         )
+        self.media_logs = set(['gecko.log'])
 
     # Allow config to set log_date_format
     def new_log_obj(self, default_log_level="info"):
@@ -422,13 +382,13 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
     def log_action_completed(self, action, success=None):
         """ Record end of each action to simplify parsing log into steps """
         msg = '##### Finished %s step. Success: %s' % (action, success)
-        if action == 'run_marionette_tests' and self.job_result_parser:
+        if action == 'run_media_tests' and self.job_result_parser:
             msg += ' - Result: %s' % (self.job_result_parser.status or UNKNOWN)
         self.info(msg)
 
     def _query_cmd(self):
         """ Determine how to call firefox-media-tests """
-        cmd = super(FirefoxMediaTest, self).__init__()
+        cmd = super(FirefoxMediaTest, self)._query_cmd()
         # configure logging
         dirs = self.query_abs_dirs()
         log_dir = dirs['abs_log_dir']
@@ -441,18 +401,8 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
         self.media_logs.add('media_tests_mach.log')
         return cmd
 
-    def run_marionette_tests(self):
-        cmd = self._query_cmd()
-        # Useful for Treeherder job submission
-        self.job_result_parser = JobResultParser(
-                                    config=self.config,
-                                    log_obj=self.log_obj,
-                                    error_list=self.error_list)
-        return_code = self.run_command(cmd,
-                                       output_timeout=self.test_timeout,
-                                       output_parser=self.job_result_parser)
-        self.job_result_parser.return_code = return_code
-        status = self.job_result_parser.status
+    def run_media_tests(self):
+        status = super(FirefoxMediaTest, self).run_media_tests()
         if status == SUCCESS:
             return_code = 0
             self.info("Marionette: %s" % status)
@@ -541,6 +491,8 @@ class FirefoxMediaTest(TreeherdingMixin, TestingMixin, FirefoxMediaTestsBase):
         log_dir = dirs.get('abs_log_dir')
 
         # copy media_urls ini file with txt extension for convenient web view
+        if not self.media_urls:
+            self.media_urls = os.path.join(dirs['external-media-tests'], 'urls', 'default.ini')
         url_config = os.path.abspath(self.media_urls)
         wrk_url_config = os.path.join(dirs['abs_work_dir'],
                                       os.path.basename(url_config) + '.txt')
