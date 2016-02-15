@@ -25,6 +25,11 @@ from s3 import S3Error
 
 logger = logging.getLogger()
 
+DEFAULT_REQUEST_HEADERS = {
+    'Accept': 'application/json',
+    'User-Agent': 'mozplatformqa-jenkins',
+}
+
 releases = {'mozilla-central': 'Nightly',
             'mozilla-beta': 'Beta',
             'mozilla-aurora': 'Aurora',
@@ -236,7 +241,7 @@ def get_from_treeherder(url, logger):
     """ Retrieves json results of a GET request to Treeherder's API
     :param url: url of API endpoint
     """
-    api_lookup = requests.get(url)
+    api_lookup = requests.get(url, headers=DEFAULT_REQUEST_HEADERS)
     message = 'GET: %s' % url
     logger.debug('get_from_treeherder - ' + message)
 
