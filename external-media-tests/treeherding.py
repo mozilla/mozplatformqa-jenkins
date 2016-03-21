@@ -487,6 +487,7 @@ class TreeherderSubmission(object):
             tj = tjc.get_job()
             tj.add_description(j.description)
             tj.add_reason(j.reason)
+            tj.add_tier(self.tier)
             tj.add_revision_hash(revision_hash)
             tj.add_project(project)
             tj.add_who(j.who)
